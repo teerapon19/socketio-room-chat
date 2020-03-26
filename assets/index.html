@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Chat | Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font: 13px Helvetica, Arial;
+    }
+    form.message-box {
+      background: #000;
+      padding: 3px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+    form.message-box input {
+      border: 0;
+      padding: 10px;
+      width: 90%;
+      margin-right: .5%;
+    }
+    form.message-box button {
+      width: 9%;
+      background: rgb(130, 224, 255);
+      border: none;
+      padding: 10px;
+      color: white;
+    }
+    #messages {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+    #messages li {
+      padding: 5px 10px;
+    }
+    #messages li.reply {
+      background: #eee;
+    }
+    .room {
+      position: absolute;
+      /* display: none; */
+      background-color: #5b51eb;
+      width: 100%;
+      height: 100%;
+      z-index: 1000000;
+    }
+    .center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .room-form input{
+      display: block;
+      margin: 0 auto;
+      margin-bottom: 15px;
+    }
+    .room-form button {
+      text-align: center;
+      display: block;
+      margin: 0 auto;
+    }
+    .botton {
+      padding: 10px 15px;
+      border-radius: 13px;
+      border: 0;
+      cursor: pointer;
+      background-color: #bb20cf;
+      color: white;
+      font-weight: bold;
+    }
+    .input-text {
+      padding: 8px 15px;
+      border-radius: 13px;
+      outline: none;
+      border: 0;
+    }
+    .text-center {
+      text-align: center;
+    }
+    .room-header {
+      font-size: 48px;
+      margin-bottom: 15px;
+      color: #cf2037;
+    }
+    #headerText {
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="room" id="roomScreen">
+    <div class="center">
+      <h1 class="room-header text-center">Chat Room!</h1>
+      <form id="room" class="room-form" action="">
+        <input class="input-text text-center" id="userName" required placeholder="User name" autocomplete="off" />
+        <input class="input-text text-center" id="roomName" required placeholder="Room name" autocomplete="off" />
+        <button class="botton">JOIN ROOM</button>
+      </form>
+    </div>
+  </div>
+  <h1 id="headerText"></h1>
+  <ul id="messages"></ul>
+  <form id="message" class="message-box" action="">
+    <input class="input-text" id="m" autocomplete="off" /><button class="botton">Send</button>
+  </form>
+  <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+  <script>
+    var socket = io()
+
+    let identify = ''
+    let name = ''
+    let room = ''
+
+    const headerText = document.getElementById('headerText')
+
+    const roomScreen = document.getElementById('roomScreen')
+    const userName = document.getElementById('userName')
+    const roomName = document.getElementById('roomName')
+    const joinRoomForm = document.getElementById('room')
+
+    const messageInput = document.getElementById('m')
+    const messageForm = document.getElementById('message')
+
+    const messagesUl = document.getElementById('messages')
+
+    socket.on('reply', function(msg){
+      console.log(msg)
+      const chatText = JSON.parse(msg)
+      const li = document.createElement('li')
+      if (chatText.identify !== identify) {
+        li.className = 'reply'
+      }
+      li.textContent = `${chatText.userName} => ${chatText.text}`
+      messagesUl.append(li)
+    })
+
+    socket.on('user-connect', function(msg){
+      const chatText = JSON.parse(msg)
+      const li = document.createElement('li')
+      if (chatText.identify !== identify) {
+        li.className = 'reply'
+      }
+      li.textContent = `New user ${chatText.userName} is conneted!`
+      messagesUl.append(li)
+    })
+
+    joinRoomForm.onsubmit = function() {
+      identify = new Date().toISOString()
+      name = userName.value
+      room = roomName.value
+      const chatText = {
+        identify,
+        userName: name,
+        roomName: room,
+        text: ''
+      }
+      socket.emit('join-room', JSON.stringify(chatText))
+      headerText.textContent = `Welcome to ${room} room!`
+      roomScreen.style.display = 'none'
+      return false
+    }
+
+    messageForm.onsubmit = function() {
+      const chatText = {
+        identify,
+        userName: name,
+        roomName: room,
+        text: messageInput.value
+      }
+      socket.emit('msg', JSON.stringify(chatText))
+      messageInput.value = ''
+      return false
+    }
+  </script>
+</body>
+</html>
